@@ -195,19 +195,29 @@ npm run mobile:start
 ## 🛠️ 开发提示
 
 <details>
-<summary>可选环境变量（<code>apps/server/.env</code>）</summary>
+<summary>环境变量（<code>apps/server/.env</code>）</summary>
+
+项目已提供 `apps/server/.env.example` 模板，拷贝一份填值即可：
+
+```bash
+cp apps/server/.env.example apps/server/.env
+```
 
 ```env
-# JWT 密钥（生产环境务必替换）
-JWT_SECRET=your-secret-key
+# 必填（生产环境）：JWT 签名密钥
+# 未设置时进程会随机生成一个 ephemeral 值并打印 WARN，重启后旧 token 失效
+# 生成: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+JWT_SECRET=
 
 # 可选：启用 OpenAI 增强解析
-OPENAI_API_KEY=sk-xxx
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-nano
 
-# 端口（默认 3000）
+# 可选：端口（默认 3000）
 PORT=3000
 ```
+
+> 🔐 所有 API Key / 密钥 / token 都应放在 `.env` 中，绝不要写进源码。`.env` 已在 `.gitignore`。
 
 </details>
 
