@@ -27,5 +27,8 @@ module.exports = ({ config }) => ({
   web: {},
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL || null,
+    eas: {
+      projectId: 'f2d69db7-b177-4517-9101-fe71a639acbd',
+    },
   },
 });
