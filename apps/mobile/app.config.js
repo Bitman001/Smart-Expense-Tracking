@@ -21,6 +21,8 @@ module.exports = ({ config }) => ({
       backgroundColor: '#6C5CE7',
     },
     package: 'com.smartexpense.app',
+    versionCode: 1,
+    permissions: ['INTERNET'],
   },
   web: {},
   extra: {
