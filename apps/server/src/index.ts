@@ -17,8 +17,21 @@ import exportRoutes from './routes/export';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件
-app.use(cors());
+// CORS 配置:
+// - 开发环境(NODE_ENV !== 'production')允许所有来源,便于本地调试
+// - 生产环境通过 ALLOWED_ORIGINS 环境变量(逗号分隔)配置白名单;
+//   未配置时同样放开所有来源(简化首次部署,生产环境建议显式配置)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const corsOptions =
+  process.env.NODE_ENV === 'production' && allowedOrigins.length > 0
+    ? { origin: allowedOrigins, credentials: true }
+    : { origin: true, credentials: true };
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

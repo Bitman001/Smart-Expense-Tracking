@@ -1,14 +1,21 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-
-const DB_PATH = path.join(__dirname, '..', 'data', 'expense.db');
-
-// 确保 data 目录存在
 import fs from 'fs';
+
+// 数据库路径优先读取环境变量 DATABASE_PATH(Railway 部署时指向 Volume 挂载点,
+// 例如 /app/data/expense.db);未设置时落回仓库内相对路径,保持本地开发体验不变。
+// 相对路径相对于 apps/server 目录(无论通过 tsx src 还是 node dist 启动都会解析到同一处)。
+const DB_PATH = process.env.DATABASE_PATH
+  ? path.resolve(process.env.DATABASE_PATH)
+  : path.join(__dirname, '..', 'data', 'expense.db');
+
+// 启动时确保目录存在,否则 better-sqlite3 会抛 SQLITE_CANTOPEN
 const dataDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
+
+console.log(`[database] SQLite 文件路径: ${DB_PATH}`);
 
 const db = new Database(DB_PATH);
 

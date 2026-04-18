@@ -36,6 +36,7 @@ __MACOSX/
 # Editor
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 
