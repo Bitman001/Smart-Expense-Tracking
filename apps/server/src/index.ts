@@ -31,6 +31,13 @@ const corsOptions =
     ? { origin: allowedOrigins, credentials: true }
     : { origin: true, credentials: true };
 
+// Railway/Fastly 会缓存 API 响应并剥离 Access-Control-Allow-Origin 头,
+// 导致浏览器 CORS 校验失败。为所有 /api/* 响应显式禁用 CDN 缓存。
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
