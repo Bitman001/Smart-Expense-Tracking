@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../database';
 import { authMiddleware, AuthRequest } from '../middlewares/auth';
+import { isFamilyMember } from '../middlewares/family';
 
 const router = Router();
 
@@ -12,6 +13,12 @@ router.get('/', authMiddleware, (req: AuthRequest, res: Response) => {
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const offset = (pageNum - 1) * limitNum;
+
+    // 🔒 数据隔离:传入 familyId 时必须验证调用者是该家庭成员,
+    // 否则任何人猜到 family UUID 就能读别人家的账单。
+    if (familyId && !isFamilyMember(req.userId, familyId as string)) {
+      return res.status(403).json({ success: false, error: '无权访问该家庭数据' });
+    }
 
     let query = `
       SELECT r.*, c.name as category_name, c.icon as category_icon, c.color as category_color,
@@ -81,6 +88,11 @@ router.post('/', authMiddleware, (req: AuthRequest, res: Response) => {
 
     if (!amount || !categoryId) {
       return res.status(400).json({ success: false, error: '金额和类别不能为空' });
+    }
+
+    // 🔒 数据隔离:要把账单挂到某家庭下,必须是该家庭成员
+    if (familyId && !isFamilyMember(req.userId, familyId)) {
+      return res.status(403).json({ success: false, error: '无权在该家庭下创建账单' });
     }
 
     const id = uuidv4();
@@ -162,6 +174,11 @@ router.get('/summary', authMiddleware, (req: AuthRequest, res: Response) => {
     const startDate = `${currentMonth}-01`;
     const endDate = `${currentMonth}-31`;
 
+    // 🔒 数据隔离:同 GET /,familyId 必须匹配成员关系
+    if (familyId && !isFamilyMember(req.userId, familyId as string)) {
+      return res.status(403).json({ success: false, error: '无权访问该家庭数据' });
+    }
+
     let whereClause = 'WHERE r.date >= ? AND r.date <= ?';
     const params: any[] = [startDate, endDate];
 
@@ -204,10 +221,14 @@ router.get('/summary', authMiddleware, (req: AuthRequest, res: Response) => {
       ORDER BY date ASC
     `).all(...params);
 
-    // 预算信息
-    const budget = db.prepare(`
-      SELECT * FROM budgets WHERE month = ? AND (user_id = ? OR family_id = ?)
-    `).get(currentMonth, req.userId, familyId || '') as any;
+    // 预算信息:家庭视图优先查家庭预算,个人视图只查自己的预算
+    // 旧实现用 `(user_id = ? OR family_id = ?)` + `familyId || ''`,
+    // 虽然空字符串不会匹配真实 UUID,但逻辑混乱,改成分支清晰的写法。
+    const budget = familyId
+      ? db.prepare('SELECT * FROM budgets WHERE month = ? AND family_id = ?')
+          .get(currentMonth, familyId) as any
+      : db.prepare('SELECT * FROM budgets WHERE month = ? AND user_id = ? AND family_id IS NULL')
+          .get(currentMonth, req.userId) as any;
 
     res.json({
       success: true,

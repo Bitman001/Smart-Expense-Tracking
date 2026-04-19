@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../database';
 import { authMiddleware, AuthRequest } from '../middlewares/auth';
+import { isFamilyMember } from '../middlewares/family';
 
 const router = Router();
 
@@ -125,6 +126,11 @@ router.get('/:familyId/stats', authMiddleware, (req: AuthRequest, res: Response)
   try {
     const { familyId } = req.params;
     const { month } = req.query;
+
+    // 🔒 数据隔离:必须是家庭成员
+    if (!isFamilyMember(req.userId, familyId)) {
+      return res.status(403).json({ success: false, error: '无权访问该家庭数据' });
+    }
     const currentMonth = (month as string) || new Date().toISOString().slice(0, 7);
     const startDate = `${currentMonth}-01`;
     const endDate = `${currentMonth}-31`;

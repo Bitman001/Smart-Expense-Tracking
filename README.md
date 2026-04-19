@@ -11,6 +11,20 @@ Monorepo 全栈架构：**React Native (Expo) 前端 + Node.js/Express 后端 + 
 
 ---
 
+> ### 🚨 安全公告 · v1.0.0 已知数据隔离问题
+>
+> **v1.0.0 及更早版本**存在严重的数据隔离缺陷：后端 `/api/records`、`/api/records/summary`、
+> `/api/families/:id/stats`、`/api/budgets`、`/api/export/*` 均只按 `familyId` 过滤,未校验
+> 调用者是否是该家庭成员。配合客户端在登录/注册时未清空前一用户的 `currentFamilyId` 缓存,
+> 会导致**新用户注册后看到演示账号(demo@example.com)的账单、收入、预算**。
+>
+> **已在 v1.0.1 修复**：服务端为所有接受 `familyId` 的路由新增 `isFamilyMember()` 成员校验,
+> 非成员访问一律返回 `403`;客户端 `login`/`register`/`logout` 现在会显式清空旧缓存。
+>
+> 若你已基于 v1.0.0 代码部署了生产环境,**请务必 `git pull` + 重新部署**。
+
+---
+
 ## ✨ 核心功能
 
 | 功能 | 描述 |

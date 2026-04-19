@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import db from '../database';
 import { authMiddleware, AuthRequest } from '../middlewares/auth';
+import { isFamilyMember } from '../middlewares/family';
 
 const router = Router();
 
@@ -8,6 +9,11 @@ const router = Router();
 router.get('/csv', authMiddleware, (req: AuthRequest, res: Response) => {
   try {
     const { familyId, startDate, endDate } = req.query;
+
+    // 🔒 数据隔离
+    if (familyId && !isFamilyMember(req.userId, familyId as string)) {
+      return res.status(403).json({ success: false, error: '无权访问该家庭数据' });
+    }
 
     let query = `
       SELECT r.date, r.type, r.amount, c.name as category, r.description, r.source, u.name as user_name
@@ -56,6 +62,11 @@ router.get('/share-data', authMiddleware, (req: AuthRequest, res: Response) => {
     const currentMonth = (month as string) || new Date().toISOString().slice(0, 7);
     const startDate = `${currentMonth}-01`;
     const endDate = `${currentMonth}-31`;
+
+    // 🔒 数据隔离
+    if (familyId && !isFamilyMember(req.userId, familyId as string)) {
+      return res.status(403).json({ success: false, error: '无权访问该家庭数据' });
+    }
 
     let whereClause = 'WHERE r.date >= ? AND r.date <= ?';
     const params: any[] = [startDate, endDate];

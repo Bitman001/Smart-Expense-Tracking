@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import db from '../database';
 import { authMiddleware, AuthRequest } from '../middlewares/auth';
+import { isFamilyMember } from '../middlewares/family';
 
 const router = Router();
 
@@ -11,6 +12,11 @@ router.get('/', authMiddleware, (req: AuthRequest, res: Response) => {
     const { month, familyId } = req.query;
     const currentMonth = (month as string) || new Date().toISOString().slice(0, 7);
 
+    // 🔒 数据隔离
+    if (familyId && !isFamilyMember(req.userId, familyId as string)) {
+      return res.status(403).json({ success: false, error: '无权访问该家庭数据' });
+    }
+
     let query = 'SELECT b.*, c.name as category_name, c.icon as category_icon FROM budgets b LEFT JOIN categories c ON b.category_id = c.id WHERE b.month = ?';
     const params: any[] = [currentMonth];
 
@@ -18,7 +24,7 @@ router.get('/', authMiddleware, (req: AuthRequest, res: Response) => {
       query += ' AND b.family_id = ?';
       params.push(familyId);
     } else {
-      query += ' AND b.user_id = ?';
+      query += ' AND b.user_id = ? AND b.family_id IS NULL';
       params.push(req.userId);
     }
 
@@ -39,17 +45,24 @@ router.post('/', authMiddleware, (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, error: '请输入预算金额' });
     }
 
-    // 检查是否已存在
-    let existing;
-    if (categoryId) {
-      existing = db.prepare(
-        'SELECT * FROM budgets WHERE month = ? AND category_id = ? AND (user_id = ? OR family_id = ?)'
-      ).get(currentMonth, categoryId, req.userId, familyId || '');
-    } else {
-      existing = db.prepare(
-        'SELECT * FROM budgets WHERE month = ? AND category_id IS NULL AND (user_id = ? OR family_id = ?)'
-      ).get(currentMonth, req.userId, familyId || '');
+    // 🔒 数据隔离:设置家庭预算前必须是家庭成员
+    if (familyId && !isFamilyMember(req.userId, familyId)) {
+      return res.status(403).json({ success: false, error: '无权操作该家庭数据' });
     }
+
+    // 检查是否已存在:家庭预算按 family_id 归属,个人预算按 user_id 归属,
+    // 二者互不干扰(避免之前 `OR` 条件跨作用域匹配)
+    const scopeSql = familyId ? 'family_id = ?' : 'user_id = ? AND family_id IS NULL';
+    const scopeParam = familyId || req.userId;
+    const catSql = categoryId ? 'category_id = ?' : 'category_id IS NULL';
+
+    const params: any[] = [currentMonth];
+    if (categoryId) params.push(categoryId);
+    params.push(scopeParam);
+
+    const existing = db.prepare(
+      `SELECT * FROM budgets WHERE month = ? AND ${catSql} AND ${scopeSql}`
+    ).get(...params);
 
     if (existing) {
       db.prepare("UPDATE budgets SET amount = ?, updated_at = datetime('now') WHERE id = ?").run(amount, (existing as any).id);

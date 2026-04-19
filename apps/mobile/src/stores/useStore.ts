@@ -95,19 +95,44 @@ export const useStore = create<AppState>((set, get) => ({
     const res: any = await authAPI.login(email, password);
     const { user, token } = res.data;
     await AsyncStorage.setItem('token', token);
-    set({ user, token });
+    // ⚠️ 必须清空上一用户的缓存数据,否则会把前一个账号的 currentFamilyId
+    // 透传给后端 → 拉到别人的账单(已知历史 bug)
+    set({
+      user,
+      token,
+      records: [],
+      summary: null,
+      families: [],
+      currentFamilyId: null,
+    });
   },
 
   register: async (name, email, password) => {
     const res: any = await authAPI.register(name, email, password);
     const { user, token } = res.data;
     await AsyncStorage.setItem('token', token);
-    set({ user, token });
+    // 同 login,清空所有前一用户的缓存
+    set({
+      user,
+      token,
+      records: [],
+      summary: null,
+      families: [],
+      currentFamilyId: null,
+    });
   },
 
   logout: async () => {
     await AsyncStorage.removeItem('token');
-    set({ user: null, token: null, records: [], families: [], summary: null });
+    set({
+      user: null,
+      token: null,
+      records: [],
+      families: [],
+      summary: null,
+      categories: [],
+      currentFamilyId: null,
+    });
   },
 
   loadSession: async () => {
