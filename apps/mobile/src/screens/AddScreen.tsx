@@ -60,7 +60,7 @@ export default function AddScreen({ navigation }: any) {
         setSelectedCategory(res.data.categoryId);
       }
     } catch (error: any) {
-      Alert.alert('解析失败', error.message);
+      Alert.alert('解析失败', error.userMessage || error.message);
     } finally {
       setParsing(false);
     }
@@ -99,7 +99,7 @@ export default function AddScreen({ navigation }: any) {
         { text: '返回首页', onPress: () => navigation.navigate('Home') },
       ]);
     } catch (error: any) {
-      Alert.alert('保存失败', error.message);
+      Alert.alert('保存失败', error.userMessage || error.message);
     } finally {
       setSaving(false);
     }

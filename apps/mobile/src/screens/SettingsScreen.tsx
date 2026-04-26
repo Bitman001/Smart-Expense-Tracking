@@ -30,7 +30,7 @@ export default function SettingsScreen() {
       await budgetsAPI.createOrUpdate({ amount });
       Alert.alert('成功', '预算设置成功');
     } catch (error: any) {
-      Alert.alert('错误', error.message);
+      Alert.alert('错误', error.userMessage || error.message);
     }
   };
 
@@ -38,7 +38,7 @@ export default function SettingsScreen() {
     try {
       Alert.alert('导出', '正在生成 CSV 文件...\n（实际使用时会触发文件下载）');
     } catch (error: any) {
-      Alert.alert('错误', error.message);
+      Alert.alert('错误', error.userMessage || error.message);
     }
   };
 

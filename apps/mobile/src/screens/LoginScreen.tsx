@@ -41,7 +41,7 @@ export default function LoginScreen({ navigation }: any) {
         await register(name, email, password);
       }
     } catch (error: any) {
-      Alert.alert('错误', error.message || '操作失败');
+      Alert.alert('错误', error.userMessage || error.message || '操作失败');
     } finally {
       setLoading(false);
     }

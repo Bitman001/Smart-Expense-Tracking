@@ -68,7 +68,7 @@ export default function FamilyScreen() {
       setFamilyName('');
       Alert.alert('成功', '家庭创建成功！');
     } catch (error: any) {
-      Alert.alert('错误', error.message);
+      Alert.alert('错误', error.userMessage || error.message);
     }
   };
 
@@ -84,7 +84,7 @@ export default function FamilyScreen() {
       setInviteCode('');
       Alert.alert('成功', '成功加入家庭！');
     } catch (error: any) {
-      Alert.alert('错误', error.message);
+      Alert.alert('错误', error.userMessage || error.message);
     }
   };
 

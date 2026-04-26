@@ -32,12 +32,56 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// 把 axios 错误转成给用户看的中文提示。集中在一处方便后续调整文案,
+// 调用方既可以读 `error.userMessage` 也可以直接读 `error.message`(两者一致)。
+function getFriendlyError(error: any): string {
+  // 1. 网络错误(最常见,RN/Web 上 axios 拿不到 response 时落到这里)
+  //    特别针对国内用户可能开启 VPN 干扰路由的情况给出明确指引。
+  if (error?.message === 'Network Error' || !error?.response) {
+    if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+      return '⏱️ 请求超时,网络较慢,请稍后再试';
+    }
+    return '⚠️ 无法连接服务器\n\n可能原因:\n• 您可能开启了 VPN,请尝试关闭\n• 网络连接不稳定,请检查 WiFi/移动网络\n• 服务器临时维护中';
+  }
+
+  // 2. 超时(有 response 但被 axios 标记超时,极少见)
+  if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+    return '⏱️ 请求超时,网络较慢,请稍后再试';
+  }
+
+  // 3. HTTP 状态码 → 中文文案,后端业务 error 字段优先
+  const status = error.response?.status;
+  const backendError = error.response?.data?.error || error.response?.data?.message;
+
+  switch (status) {
+    case 400: return backendError || '请求参数有误';
+    case 401: return backendError || '登录已过期,请重新登录';
+    case 403: return backendError || '您没有权限执行此操作';
+    case 404: return backendError || '请求的资源不存在';
+    case 409: return backendError || '该数据已存在或冲突';
+    case 429: return backendError || '请求过于频繁,请稍后再试';
+    case 500: return '服务器开小差了,请稍后再试';
+    case 502:
+    case 503:
+    case 504: return '服务暂时不可用,请稍后再试';
+  }
+
+  if (backendError) return backendError;
+  return `请求失败(${status || '未知错误'})`;
+}
+
 // 响应拦截器
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.error || error.message || '网络错误';
-    return Promise.reject(new Error(message));
+    const friendly = getFriendlyError(error);
+    // 新建一个 Error 让 message 已经是中文友好提示,同时挂 userMessage 兼容
+    // 显式调用 `error.userMessage || error.message` 的写法。
+    const wrapped: any = new Error(friendly);
+    wrapped.userMessage = friendly;
+    wrapped.status = error?.response?.status;
+    wrapped.original = error;
+    return Promise.reject(wrapped);
   }
 );
 

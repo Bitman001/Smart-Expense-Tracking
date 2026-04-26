@@ -97,7 +97,7 @@ export default function EditRecordModal({ visible, record, onClose, onSaved }: P
       onSaved?.();
       onClose();
     } catch (error: any) {
-      notify('保存失败', error.message || '请重试');
+      notify('保存失败', error.userMessage || error.message || '请重试');
     } finally {
       setSaving(false);
     }
@@ -113,7 +113,7 @@ export default function EditRecordModal({ visible, record, onClose, onSaved }: P
         onSaved?.();
         onClose();
       } catch (error: any) {
-        notify('删除失败', error.message || '请重试');
+        notify('删除失败', error.userMessage || error.message || '请重试');
       } finally {
         setDeleting(false);
       }
