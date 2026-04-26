@@ -5,7 +5,7 @@ module.exports = ({ config }) => ({
   ...config,
   name: '智能记账',
   slug: 'smart-expense',
-  version: '1.0.0',
+  version: '1.1.0',
   orientation: 'portrait',
   userInterfaceStyle: 'light',
   splash: {
@@ -21,7 +21,7 @@ module.exports = ({ config }) => ({
       backgroundColor: '#6C5CE7',
     },
     package: 'com.smartexpense.app',
-    versionCode: 1,
+    versionCode: 2,
     permissions: ['INTERNET'],
   },
   web: {},
