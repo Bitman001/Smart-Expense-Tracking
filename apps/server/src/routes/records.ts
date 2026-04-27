@@ -59,7 +59,7 @@ router.get('/', authMiddleware, (req: AuthRequest, res: Response) => {
     const countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
     const countResult = db.prepare(countQuery).get(...params) as any;
 
-    query += ' ORDER BY r.date DESC, r.created_at DESC LIMIT ? OFFSET ?';
+    query += ' ORDER BY date(r.date) DESC, r.created_at DESC LIMIT ? OFFSET ?';
     params.push(limitNum, offset);
 
     const records = db.prepare(query).all(...params);
